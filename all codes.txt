@@ -1,0 +1,149 @@
+proc reg data=work.fitness;
+ model oxygen_consumption = performance
+ run_pulse rest_pulse maximum_pulse
+ age weight runtime/ vif;
+run;
+
+
+proc reg data=work.fitness;
+ model oxygen_consumption = run_pulse 
+ rest_pulse 
+ age weight runtime/ vif;
+run;
+
+proc reg data=work.fitness;
+ model oxygen_consumption = performance
+ run_pulse rest_pulse maximum_pulse
+ age weight runtime/ collinoint;
+run;
+
+
+proc reg data=sashelp.cars;
+ model msrp= mpg_highway 
+ horsepower/ vif;
+ 
+run;
+
+ods graphics / imagemap=on;
+
+proc reg data=work.fitness 
+     plots(only)=(rsquare adjrsq cp);
+    ALL_REG: model oxygen_consumption 
+                    = Performance RunTime Age Weight
+                      Run_Pulse Rest_Pulse Maximum_Pulse
+            / selection=rsquare 
+    adjrsq cp best=10;
+    title 'Best Models Using All-Regression Option';
+run;
+quit;
+
+
+
+proc reg data=work.fitness plots(only)=adjrsq;
+   FORWARD:  model oxygen_consumption 
+                    = Performance RunTime Age Weight
+                      Run_Pulse Rest_Pulse Maximum_Pulse
+            / selection=forward;
+   BACKWARD: model oxygen_consumption 
+                    = Performance RunTime Age Weight
+                      Run_Pulse Rest_Pulse Maximum_Pulse
+            / selection=backward;
+   STEPWISE: model oxygen_consumption 
+                    = Performance RunTime Age Weight
+                      Run_Pulse Rest_Pulse Maximum_Pulse
+            / selection=stepwise;
+   title 'Best Models Using Stepwise Selection';
+run;
+quit;
+
+
+proc reg data=work.cars;
+ model msrp= mpg_highway 
+ mpg_city horsepower/ white hcc hccmethod=0;
+ 
+run;
+
+proc reg data=sashelp.cars plots (label)= all;
+   model msrp= mpg_highway 
+ mpg_city horsepower / spec ;   
+   output out=check r=residual p=pred;
+run;                               
+
+data check;
+   set check;
+   abserror=abs(residual);
+run;
+
+proc corr data=check spearman nosimple;
+   var abserror pred;
+   title 'Spearman corr.';
+run; 
+
+
+proc reg data=sashelp.cars plots (label)= all;
+   model msrp= mpg_highway 
+ mpg_city horsepower / influence;
+run;
+data cars;
+ set sashelp.cars;
+run;
+
+/*proc print data= cars; run;*/
+
+proc means data=cars;
+ class make;
+ var msrp;
+run;
+
+ods graphics on;
+proc ttest data=cars H0=15000; var msrp; run;
+
+proc glm data=work.MGGarlic
+plots (only)= diagnostics;
+ class Fertilizer;
+ model BulbWt=Fertilizer;
+ means Fertilizer / hovtest WELCH;
+title 'Testing for Equality of Means
+  with PROC GLM';
+run;
+quit;
+  
+proc glm data=work.MGGarlic_Block
+plots (only)= diagnostics;
+ class Fertilizer Sector;
+ model BulbWt=Fertilizer Sector;
+ *means Fertilizer / hovtest WELCH;
+title 'Anova for Randomized Block Design';
+run;
+quit;
+
+proc glm data=work.MGGarlic_Block 
+         plots(only)=(controlplot diffplot(center));
+    class Fertilizer Sector;
+    model BulbWt=Fertilizer Sector;
+    lsmeans Fertilizer / pdiff=all adjust=tukey;
+    lsmeans Fertilizer / pdiff=control('4') adjust=dunnett;
+    lsmeans Fertilizer / pdiff=all adjust=t;
+    title 'Garlic Data: Multiple Comparisons';
+run;
+quit;
+
+ods graphics on;
+proc glm data=work.drug order=internal;
+    class DrugDose Disease;
+    model Bloodp=DrugDose Disease DrugDose*Disease;
+    lsmeans DrugDose*Disease / slice=Disease;
+    title 'Analyze the Effects of DrugDose';
+    title2 'at Each Level of Disease';
+run;
+quit;
+
+proc reg data=work.fitness;
+    MODEL Oxygen_Consumption = RunTime 
+       Age
+       Weight
+       Run_Pulse
+           Rest_Pulse
+       Maximum_Pulse          
+       Performance;
+run; quit;
